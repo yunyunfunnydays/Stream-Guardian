@@ -1,0 +1,17 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: stream-guardian-java-service
+
+# Python service URL for forwarding messages
+python-service:
+  url: http://python-service:8000
+
+logging:
+  level:
+    root: INFO
+    com.streamguardian: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

@@ -15,19 +15,19 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown."""
-    logger.info("starting_up", app=settings.app_name, version=settings.app_version)
+    logger.info("========== starting_up", app=settings.app_name, version=settings.app_version)
 
     # Pre-warm: 建立 MCP 連線與 Graph
     try:
         await get_moderation_graph()
-        logger.info("graph_initialized")
+        logger.info("========== graph_initialized")
     except Exception as e:
-        logger.warning("graph_init_failed", error=str(e))
+        logger.warning("========== graph_init_failed", error=str(e))
 
     yield
 
     # Shutdown: 清理資源
-    logger.info("shutting_down")
+    logger.info("========== shutting_down")
     await cleanup()
 
 
@@ -56,7 +56,7 @@ async def analyze_message(message: ChatMessage):
     由 Java Ingest Service 透過 HTTP POST 呼叫。
     """
     logger.info(
-        "analyze_request",
+        "========== analyze_request",
         tenant_id=message.tenant_id,
         user_id=message.user_id,
         text=message.text[:50] + "..." if len(message.text) > 50 else message.text
@@ -76,7 +76,7 @@ async def analyze_message(message: ChatMessage):
         })
 
         logger.info(
-            "analyze_complete",
+            "========== analyze_complete",
             tenant_id=message.tenant_id,
             is_flagged=result.get("is_flagged", False),
             action_taken=result.get("action_taken")
@@ -95,5 +95,5 @@ async def analyze_message(message: ChatMessage):
         )
 
     except Exception as e:
-        logger.error("analyze_failed", error=str(e))
+        logger.error("========== analyze_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))

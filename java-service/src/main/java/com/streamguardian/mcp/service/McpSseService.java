@@ -36,17 +36,17 @@ public class McpSseService {
         SseEmitter emitter = new SseEmitter(0L);
 
         emitter.onCompletion(() -> {
-            log.info("SSE connection completed: {}", sessionId);
+            log.info("========== SSE connection completed: {}", sessionId);
             activeConnections.remove(sessionId);
         });
 
         emitter.onTimeout(() -> {
-            log.info("SSE connection timed out: {}", sessionId);
+            log.info("========== SSE connection timed out: {}", sessionId);
             activeConnections.remove(sessionId);
         });
 
         emitter.onError(e -> {
-            log.error("SSE connection error for session {}: {}", sessionId, e.getMessage());
+            log.error("========== SSE connection error for session {}: {}", sessionId, e.getMessage());
             activeConnections.remove(sessionId);
         });
 
@@ -60,9 +60,9 @@ public class McpSseService {
             emitter.send(SseEmitter.event()
                     .name("endpoint")
                     .data(endpointData));
-            log.info("SSE connection established: {} (total active: {})", sessionId, activeConnections.size());
+            log.info("========== SSE connection established: {} (total active: {})", sessionId, activeConnections.size());
         } catch (IOException e) {
-            log.error("Failed to send endpoint event: {}", e.getMessage());
+            log.error("========== Failed to send endpoint event: {}", e.getMessage());
             activeConnections.remove(sessionId);
         }
 
@@ -80,13 +80,13 @@ public class McpSseService {
                 emitter.send(SseEmitter.event()
                         .name("message")
                         .data(jsonMessage));
-                log.debug("Sent SSE message to session {}: {}", sessionId, jsonMessage);
+                log.debug("========== Sent SSE message to session {}: {}", sessionId, jsonMessage);
             } catch (IOException e) {
-                log.error("Failed to send SSE message to session {}: {}", sessionId, e.getMessage());
+                log.error("========== Failed to send SSE message to session {}: {}", sessionId, e.getMessage());
                 activeConnections.remove(sessionId);
             }
         } else {
-            log.warn("No active SSE connection for session: {}", sessionId);
+            log.warn("========== No active SSE connection for session: {}", sessionId);
         }
     }
 
@@ -98,7 +98,7 @@ public class McpSseService {
         try {
             jsonMessage = objectMapper.writeValueAsString(message);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize broadcast message: {}", e.getMessage());
+            log.error("========== Failed to serialize broadcast message: {}", e.getMessage());
             return;
         }
 
@@ -108,7 +108,7 @@ public class McpSseService {
                         .name("message")
                         .data(jsonMessage));
             } catch (IOException e) {
-                log.error("Failed to broadcast to session {}: {}", sessionId, e.getMessage());
+                log.error("========== Failed to broadcast to session {}: {}", sessionId, e.getMessage());
                 activeConnections.remove(sessionId);
             }
         });

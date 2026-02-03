@@ -105,16 +105,14 @@ public class McpToolService {
      * Execute a tool and return the result
      */
     public Map<String, Object> executeTool(String toolName, Map<String, Object> arguments) {
-        log.info("═══════════════════════════════════════════════════════════════");
-        log.info("🔧 MCP TOOL EXECUTION: {}", toolName);
-        log.info("───────────────────────────────────────────────────────────────");
+        log.info("========== MCP TOOL EXECUTION: {}", toolName);
 
         return switch (toolName) {
             case "ban_user" -> executeBanUser(arguments);
             case "timeout_user" -> executeTimeoutUser(arguments);
             case "reply_chat" -> executeReplyChat(arguments);
             default -> {
-                log.error("❌ Unknown tool: {}", toolName);
+                log.error("========== Unknown tool: {}", toolName);
                 yield Map.of(
                         "success", false,
                         "error", "Unknown tool: " + toolName
@@ -128,12 +126,8 @@ public class McpToolService {
         String userId = (String) args.get("user_id");
         String reason = (String) args.get("reason");
 
-        log.info("🚫 BAN_USER Action:");
-        log.info("   ├─ Tenant ID : {}", tenantId);
-        log.info("   ├─ User ID   : {}", userId);
-        log.info("   └─ Reason    : {}", reason);
-        log.info("📡 [SIMULATED] Twitch API: POST /moderation/bans");
-        log.info("═══════════════════════════════════════════════════════════════");
+        log.info("========== BAN_USER: tenant={}, user={}, reason={}", tenantId, userId, reason);
+        log.info("========== [SIMULATED] Twitch API: POST /moderation/bans");
 
         return Map.of(
                 "success", true,
@@ -151,12 +145,8 @@ public class McpToolService {
         Object durationObj = args.get("duration");
         int duration = durationObj instanceof Number ? ((Number) durationObj).intValue() : 60;
 
-        log.info("⏱️ TIMEOUT_USER Action:");
-        log.info("   ├─ Tenant ID : {}", tenantId);
-        log.info("   ├─ User ID   : {}", userId);
-        log.info("   └─ Duration  : {} seconds", duration);
-        log.info("📡 [SIMULATED] Twitch API: POST /moderation/bans (with duration)");
-        log.info("═══════════════════════════════════════════════════════════════");
+        log.info("========== TIMEOUT_USER: tenant={}, user={}, duration={}s", tenantId, userId, duration);
+        log.info("========== [SIMULATED] Twitch API: POST /moderation/bans (with duration)");
 
         return Map.of(
                 "success", true,
@@ -172,11 +162,8 @@ public class McpToolService {
         String tenantId = (String) args.get("tenant_id");
         String message = (String) args.get("message");
 
-        log.info("💬 REPLY_CHAT Action:");
-        log.info("   ├─ Tenant ID : {}", tenantId);
-        log.info("   └─ Message   : {}", message);
-        log.info("📡 [SIMULATED] Twitch API: POST /chat/messages");
-        log.info("═══════════════════════════════════════════════════════════════");
+        log.info("========== REPLY_CHAT: tenant={}, message={}", tenantId, message);
+        log.info("========== [SIMULATED] Twitch API: POST /chat/messages");
 
         return Map.of(
                 "success", true,

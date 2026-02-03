@@ -32,7 +32,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String sessionId = session.getId();
         activeSessions.put(sessionId, session);
-        log.info("WebSocket connected: {} (total active: {})", sessionId, activeSessions.size());
+        log.info("========== WebSocket connected: {} (total active: {})", sessionId, activeSessions.size());
     }
 
     @Override
@@ -48,16 +48,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 chatMessage.setTimestamp(System.currentTimeMillis());
             }
 
-            log.info("📨 Chat message received:");
-            log.info("   ├─ Tenant  : {}", chatMessage.getTenantId());
-            log.info("   ├─ User    : {} ({})", chatMessage.getUsername(), chatMessage.getUserId());
-            log.info("   └─ Message : {}", chatMessage.getText());
+            log.info("========== Chat message: tenant={}, user={}({}), text={}",
+                    chatMessage.getTenantId(), chatMessage.getUsername(), chatMessage.getUserId(), chatMessage.getText());
 
             // Forward to Python service for analysis
             forwardingService.forwardToPythonService(chatMessage);
 
         } catch (Exception e) {
-            log.error("Failed to process chat message: {}", e.getMessage(), e);
+            log.error("========== Failed to process chat message: {}", e.getMessage(), e);
             session.sendMessage(new TextMessage("{\"error\": \"" + e.getMessage() + "\"}"));
         }
     }
@@ -66,13 +64,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         String sessionId = session.getId();
         activeSessions.remove(sessionId);
-        log.info("WebSocket disconnected: {} - {} (remaining: {})",
+        log.info("========== WebSocket disconnected: {} - {} (remaining: {})",
                 sessionId, status.getReason(), activeSessions.size());
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        log.error("WebSocket transport error for session {}: {}",
+        log.error("========== WebSocket transport error for session {}: {}",
                 session.getId(), exception.getMessage());
         activeSessions.remove(session.getId());
     }

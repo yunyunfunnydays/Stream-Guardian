@@ -34,9 +34,9 @@ async def build_moderation_graph():
 
     try:
         tools = await mcp_client.get_tools()
-        logger.info("mcp_tools_loaded", tools=[t.name for t in tools])
+        logger.info("========== mcp_tools_loaded", tools=[t.name for t in tools])
     except Exception as e:
-        logger.error("mcp_connection_failed", error=str(e))
+        logger.error("========== mcp_connection_failed", error=str(e))
         tools = []
 
     # 2. 建構 StateGraph

@@ -25,7 +25,7 @@ public class MessageForwardingService {
         this.restClient = RestClient.builder()
                 .baseUrl(pythonServiceUrl)
                 .build();
-        log.info("Message forwarding service initialized with Python URL: {}", pythonServiceUrl);
+        log.info("========== Message forwarding service initialized with Python URL: {}", pythonServiceUrl);
     }
 
     /**
@@ -34,7 +34,7 @@ public class MessageForwardingService {
     public void forwardToPythonService(ChatMessage message) {
         String analyzeUrl = "/api/analyze";
 
-        log.info("→ Forwarding message to Python service: {}{}", pythonServiceUrl, analyzeUrl);
+        log.info("========== Forwarding message to Python service: {}{}", pythonServiceUrl, analyzeUrl);
 
         try {
             Map<String, Object> response = restClient.post()
@@ -44,10 +44,10 @@ public class MessageForwardingService {
                     .retrieve()
                     .body(Map.class);
 
-            log.info("← Python service response: {}", response);
+            log.info("========== Python service response: {}", response);
 
         } catch (Exception e) {
-            log.error("Failed to forward message to Python service: {}", e.getMessage());
+            log.error("========== Failed to forward message to Python service: {}", e.getMessage());
             // In production, you might want to implement retry logic or queue the message
         }
     }

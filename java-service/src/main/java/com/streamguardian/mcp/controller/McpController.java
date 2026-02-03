@@ -41,7 +41,7 @@ public class McpController {
      */
     @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter establishSseConnection() {
-        log.info("New MCP SSE connection request");
+        log.info("========== New MCP SSE connection request");
         return sseService.createConnection();
     }
 
@@ -53,7 +53,7 @@ public class McpController {
             @RequestParam(required = false) String sessionId,
             @RequestBody JsonRpcRequest request) {
 
-        log.info("MCP Request - Method: {}, ID: {}", request.getMethod(), request.getId());
+        log.info("========== MCP Request - Method: {}, ID: {}", request.getMethod(), request.getId());
 
         JsonRpcResponse response = processRequest(request);
 
@@ -80,7 +80,7 @@ public class McpController {
      * Handle 'initialize' request - First message from client
      */
     private JsonRpcResponse handleInitialize(JsonRpcRequest request) {
-        log.info("MCP Initialize request received");
+        log.info("========== MCP Initialize request received");
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("protocolVersion", MCP_PROTOCOL_VERSION);
@@ -94,7 +94,7 @@ public class McpController {
         capabilities.put("tools", Map.of("listChanged", true));
         result.put("capabilities", capabilities);
 
-        log.info("MCP Server initialized - Protocol: {}, Server: {} v{}",
+        log.info("========== MCP Server initialized - Protocol: {}, Server: {} v{}",
                 MCP_PROTOCOL_VERSION, SERVER_NAME, SERVER_VERSION);
 
         return JsonRpcResponse.success(request.getId(), result);
@@ -104,7 +104,7 @@ public class McpController {
      * Handle 'initialized' notification - Client acknowledges initialization
      */
     private JsonRpcResponse handleInitialized(JsonRpcRequest request) {
-        log.info("MCP Client initialized notification received");
+        log.info("========== MCP Client initialized notification received");
         // This is a notification, return empty success
         return JsonRpcResponse.success(request.getId(), Map.of());
     }
@@ -113,14 +113,14 @@ public class McpController {
      * Handle 'tools/list' request - Return available tools
      */
     private JsonRpcResponse handleToolsList(JsonRpcRequest request) {
-        log.info("MCP Tools list request received");
+        log.info("========== MCP Tools list request received");
 
         List<McpToolDefinition> tools = toolService.getToolDefinitions();
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("tools", tools);
 
-        log.info("Returning {} tools: {}", tools.size(),
+        log.info("========== Returning {} tools: {}", tools.size(),
                 tools.stream().map(McpToolDefinition::getName).toList());
 
         return JsonRpcResponse.success(request.getId(), result);
@@ -135,7 +135,7 @@ public class McpController {
         String toolName = (String) params.get("name");
         Map<String, Object> arguments = (Map<String, Object>) params.getOrDefault("arguments", Map.of());
 
-        log.info("MCP Tool call: {} with arguments: {}", toolName, arguments);
+        log.info("========== MCP Tool call: {} with arguments: {}", toolName, arguments);
 
         try {
             Map<String, Object> toolResult = toolService.executeTool(toolName, arguments);
@@ -150,7 +150,7 @@ public class McpController {
 
             return JsonRpcResponse.success(request.getId(), result);
         } catch (Exception e) {
-            log.error("Tool execution failed: {}", e.getMessage(), e);
+            log.error("========== Tool execution failed: {}", e.getMessage(), e);
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("content", List.of(Map.of(
@@ -167,7 +167,7 @@ public class McpController {
      * Handle 'ping' request - Health check
      */
     private JsonRpcResponse handlePing(JsonRpcRequest request) {
-        log.debug("MCP Ping received");
+        log.debug("========== MCP Ping received");
         return JsonRpcResponse.success(request.getId(), Map.of());
     }
 

@@ -41,7 +41,7 @@ class McpClient:
             params=params
         )
 
-        logger.info("mcp_request", method=method, params=params)
+        logger.info("========== mcp_request", method=method, params=params)
 
         response = await self._client.post(
             self._build_url(),
@@ -51,7 +51,7 @@ class McpClient:
         response.raise_for_status()
 
         result = response.json()
-        logger.info("mcp_response", result=result)
+        logger.info("========== mcp_response", result=result)
 
         if "error" in result and result["error"]:
             raise Exception(f"MCP Error: {result['error']}")

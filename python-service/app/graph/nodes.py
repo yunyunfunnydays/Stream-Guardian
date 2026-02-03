@@ -47,7 +47,7 @@ def get_llm():
             temperature=0
         )
     else:
-        logger.warning("no_api_key_configured")
+        logger.warning("========== no_api_key_configured")
         return None
 
 
@@ -67,7 +67,7 @@ async def screener_node(state: ModerationState) -> dict:
     llm = get_llm()
 
     if llm is None:
-        logger.info("screener_skipped", reason="no_llm_configured")
+        logger.info("========== screener_skipped", reason="no_llm_configured")
         return {"is_flagged": False, "flag_reasons": [], "confidence": 0.0}
 
     # 使用 with_structured_output (2024/2025 主流)
@@ -82,7 +82,7 @@ async def screener_node(state: ModerationState) -> dict:
         ])
 
         logger.info(
-            "screener_result",
+            "========== screener_result",
             tenant_id=state["tenant_id"],
             user_id=state["user_id"],
             is_flagged=result.is_flagged,
@@ -98,7 +98,7 @@ async def screener_node(state: ModerationState) -> dict:
         }
 
     except Exception as e:
-        logger.error("screener_error", error=str(e))
+        logger.error("========== screener_error", error=str(e))
         return {"is_flagged": False, "flag_reasons": [], "confidence": 0.0, "error": str(e)}
 
 
@@ -131,7 +131,7 @@ async def moderator_node(state: ModerationState, tools: list) -> dict:
     llm = get_llm()
 
     if llm is None:
-        logger.info("moderator_skipped", reason="no_llm_configured")
+        logger.info("========== moderator_skipped", reason="no_llm_configured")
         return {}
 
     # Native Tool Calling: bind_tools
@@ -154,7 +154,7 @@ async def moderator_node(state: ModerationState, tools: list) -> dict:
     response = await llm_with_tools.ainvoke(messages)
 
     logger.info(
-        "moderator_response",
+        "========== moderator_response",
         tool_calls=response.tool_calls if hasattr(response, 'tool_calls') else None
     )
 

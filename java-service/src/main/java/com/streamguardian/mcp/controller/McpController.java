@@ -58,7 +58,7 @@ public class McpController {
         JsonRpcResponse response = processRequest(request);
 
         // Also send response via SSE if session exists
-        if (sessionId != null && sseService.sessionExists(sessionId)) {
+        if (sessionId != null && sseService.sessionExists(sessionId) && response != null) {
             sseService.sendMessage(sessionId, response);
         }
 
@@ -68,7 +68,10 @@ public class McpController {
     private JsonRpcResponse processRequest(JsonRpcRequest request) {
         return switch (request.getMethod()) {
             case "initialize" -> handleInitialize(request);
-            case "notifications/initialized" -> handleInitialized(request);
+            case "notifications/initialized" -> {
+                handleInitialized(request);
+                yield null; // 通知不產生 Response
+            }
             case "tools/list" -> handleToolsList(request);
             case "tools/call" -> handleToolsCall(request);
             case "ping" -> handlePing(request);
@@ -103,10 +106,9 @@ public class McpController {
     /**
      * Handle 'initialized' notification - Client acknowledges initialization
      */
-    private JsonRpcResponse handleInitialized(JsonRpcRequest request) {
+    private void handleInitialized(JsonRpcRequest request) {
         log.info("========== MCP Client initialized notification received");
-        // This is a notification, return empty success
-        return JsonRpcResponse.success(request.getId(), Map.of());
+        // This is a notification, no response is needed
     }
 
     /**

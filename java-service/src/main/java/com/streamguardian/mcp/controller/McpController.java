@@ -68,7 +68,7 @@ public class McpController {
     private JsonRpcResponse processRequest(JsonRpcRequest request) {
         return switch (request.getMethod()) {
             case "initialize" -> handleInitialize(request);
-            case "initialized" -> handleInitialized(request);
+            case "notifications/initialized" -> handleInitialized(request);
             case "tools/list" -> handleToolsList(request);
             case "tools/call" -> handleToolsCall(request);
             case "ping" -> handlePing(request);

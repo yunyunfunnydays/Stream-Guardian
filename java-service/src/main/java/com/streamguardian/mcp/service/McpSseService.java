@@ -52,14 +52,12 @@ public class McpSseService {
 
         activeConnections.put(sessionId, emitter);
 
-        // Send initial endpoint event with the session ID
+        // Send initial endpoint event with the session ID (plain path for MCP Python SDK)
         try {
-            String endpointData = objectMapper.writeValueAsString(Map.of(
-                    "endpoint", "/mcp/messages?sessionId=" + sessionId
-            ));
+            String endpointPath = "/mcp/sse?sessionId=" + sessionId;
             emitter.send(SseEmitter.event()
                     .name("endpoint")
-                    .data(endpointData));
+                    .data(endpointPath));
             log.info("SSE connection established: {} (total active: {})", sessionId, activeConnections.size());
         } catch (IOException e) {
             log.error("Failed to send endpoint event: {}", e.getMessage());

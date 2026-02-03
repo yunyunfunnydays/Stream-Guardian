@@ -4,6 +4,7 @@ import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 from app.graph.state import ModerationState
@@ -24,10 +25,16 @@ class ScreenerOutput(BaseModel):
 # --- LLM Factory ---
 
 def get_llm():
-    """根據設定取得 LLM 實例"""
+    """根據設定取得 LLM 實例 (優先順序: Google > Anthropic > OpenAI)"""
     settings = get_settings()
 
-    if settings.anthropic_api_key:
+    if settings.google_api_key:
+        return ChatGoogleGenerativeAI(
+            model=settings.llm_model,
+            google_api_key=settings.google_api_key.get_secret_value(),
+            temperature=0
+        )
+    elif settings.anthropic_api_key:
         return ChatAnthropic(
             model=settings.llm_model,
             api_key=settings.anthropic_api_key.get_secret_value(),

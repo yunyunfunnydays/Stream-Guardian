@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     anthropic_api_key: Optional[SecretStr] = None
     openai_api_key: Optional[SecretStr] = None
     google_api_key: Optional[SecretStr] = None
-    llm_model: str = "gemini-2.5-flash"
+    llm_model: str = "gpt-5-mini"
     enable_ai_analysis: bool = True
 
     model_config = SettingsConfigDict(

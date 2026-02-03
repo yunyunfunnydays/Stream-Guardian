@@ -27,7 +27,7 @@ async def build_moderation_graph():
     # 1. 連接 MCP Server，動態取得工具
     mcp_client = MultiServerMCPClient({
         "stream-guardian": {
-            "url": f"{settings.java_service_url}/mcp/sse",
+            "url": f"{settings.java_service_url}mcp/sse",
             "transport": "sse",
         }
     })
@@ -84,5 +84,4 @@ async def cleanup():
     """Cleanup MCP client connection."""
     global _mcp_client
     if _mcp_client:
-        await _mcp_client.close()
         _mcp_client = None

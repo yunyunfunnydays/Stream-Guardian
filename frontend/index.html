@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Guardian - 直播聊天模擬器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            height: 100vh;
+        }
+
+        .chat-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+            transition: background 0.3s;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message {
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.flagged {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 3px solid #ef4444;
+        }
+
+        .message.safe {
+            background: rgba(34, 197, 94, 0.1);
+            border-left: 3px solid #22c55e;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .username {
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .message-text {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.4;
+        }
+
+        .moderation-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: auto;
+        }
+
+        .moderation-badge.flagged {
+            background: #ef4444;
+            color: white;
+        }
+
+        .moderation-badge.safe {
+            background: #22c55e;
+            color: white;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .input-row input:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        .input-row input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .message-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input-row input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .message-input-row input:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .panel-section h3 {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .connection-status span {
+            font-size: 14px;
+        }
+
+        .quick-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .quick-btn {
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .quick-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .quick-btn.bad {
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #fca5a5;
+        }
+
+        .quick-btn.good {
+            border-color: rgba(34, 197, 94, 0.5);
+            color: #86efac;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+
+        .log-area {
+            flex: 1;
+            min-height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            color: #86efac;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .log-entry.error {
+            color: #fca5a5;
+        }
+
+        .log-entry.warn {
+            color: #fcd34d;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="chat-panel">
+            <div class="chat-header">
+                <div class="status-dot" id="statusDot"></div>
+                <h2>直播聊天室</h2>
+                <span style="margin-left: auto; font-size: 14px; opacity: 0.7;" id="channelDisplay">頻道: test-channel</span>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be inserted here -->
+            </div>
+            <div class="chat-input-area">
+                <div class="input-row">
+                    <input type="text" id="tenantId" placeholder="頻道 ID" value="test-channel">
+                    <input type="text" id="userId" placeholder="使用者 ID" value="user_001">
+                    <input type="text" id="username" placeholder="使用者名稱" value="TestUser">
+                </div>
+                <div class="message-input-row">
+                    <input type="text" id="messageInput" placeholder="輸入訊息..." onkeypress="handleKeyPress(event)">
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">發送</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>連線狀態</h3>
+                <div class="connection-status">
+                    <div class="status-dot" id="statusDot2"></div>
+                    <span id="connectionText">未連線</span>
+                </div>
+                <button class="send-btn" style="width: 100%; margin-top: 12px;" onclick="toggleConnection()" id="connectBtn">連線</button>
+            </div>
+
+            <div class="panel-section">
+                <h3>統計</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalMessages">0</div>
+                        <div class="stat-label">總訊息</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="flaggedMessages">0</div>
+                        <div class="stat-label">違規</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>快速測試訊息</h3>
+                <div class="quick-messages">
+                    <button class="quick-btn good" onclick="sendQuickMessage('大家好！今天天氣真好 ☀️')">大家好！今天天氣真好</button>
+                    <button class="quick-btn good" onclick="sendQuickMessage('這個直播好棒！')">這個直播好棒！</button>
+                    <button class="quick-btn bad" onclick="sendQuickMessage('你是白痴嗎？')">你是白痴嗎？ (騷擾)</button>
+                    <button class="quick-btn bad" onclick="sendQuickMessage('去死吧！')">去死吧！ (仇恨)</button>
+                    <button class="quick-btn bad" onclick="sendQuickMessage('免費領取禮物 bit.ly/scam123')">詐騙連結 (垃圾)</button>
+                </div>
+            </div>
+
+            <div class="panel-section" style="flex: 1; display: flex; flex-direction: column;">
+                <h3>系統日誌</h3>
+                <div class="log-area" id="logArea"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let totalMessages = 0;
+        let flaggedMessages = 0;
+
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logArea.appendChild(entry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function updateConnectionStatus(connected) {
+            const dots = document.querySelectorAll('.status-dot');
+            const text = document.getElementById('connectionText');
+            const btn = document.getElementById('connectBtn');
+            const sendBtn = document.getElementById('sendBtn');
+
+            dots.forEach(dot => {
+                dot.classList.toggle('connected', connected);
+            });
+            text.textContent = connected ? '已連線' : '未連線';
+            btn.textContent = connected ? '斷開連線' : '連線';
+            sendBtn.disabled = !connected;
+        }
+
+        function toggleConnection() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            } else {
+                connect();
+            }
+        }
+
+        function connect() {
+            const wsUrl = 'ws://localhost:8080/ws/chat';
+            log(`正在連線到 ${wsUrl}...`);
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    log('WebSocket 連線成功！', 'info');
+                    updateConnectionStatus(true);
+                };
+
+                ws.onmessage = (event) => {
+                    log(`收到訊息: ${event.data}`);
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleServerMessage(data);
+                    } catch (e) {
+                        log(`解析訊息失敗: ${e.message}`, 'error');
+                    }
+                };
+
+                ws.onclose = (event) => {
+                    log(`連線已關閉 (code: ${event.code})`, 'warn');
+                    updateConnectionStatus(false);
+                };
+
+                ws.onerror = (error) => {
+                    log('WebSocket 錯誤', 'error');
+                    updateConnectionStatus(false);
+                };
+            } catch (e) {
+                log(`連線失敗: ${e.message}`, 'error');
+            }
+        }
+
+        function handleServerMessage(data) {
+            // Handle moderation result from server
+            if (data.type === 'moderation_result') {
+                updateMessageStatus(data.message_id, data.is_flagged, data.flag_reasons, data.confidence);
+            }
+        }
+
+        function updateMessageStatus(messageId, isFlagged, reasons, confidence) {
+            const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (msgEl) {
+                msgEl.classList.remove('flagged', 'safe');
+                msgEl.classList.add(isFlagged ? 'flagged' : 'safe');
+
+                const badge = msgEl.querySelector('.moderation-badge');
+                if (badge) {
+                    badge.className = `moderation-badge ${isFlagged ? 'flagged' : 'safe'}`;
+                    badge.textContent = isFlagged
+                        ? `違規 ${Math.round(confidence * 100)}%`
+                        : '安全';
+                }
+
+                if (isFlagged) {
+                    flaggedMessages++;
+                    document.getElementById('flaggedMessages').textContent = flaggedMessages;
+                    log(`訊息違規: ${reasons.join(', ')} (${Math.round(confidence * 100)}%)`, 'warn');
+                }
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+
+            if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            const tenantId = document.getElementById('tenantId').value || 'test-channel';
+            const userId = document.getElementById('userId').value || 'user_001';
+            const username = document.getElementById('username').value || 'TestUser';
+
+            const message = {
+                tenant_id: tenantId,
+                user_id: userId,
+                username: username,
+                text: text,
+                timestamp: Date.now()
+            };
+
+            ws.send(JSON.stringify(message));
+            log(`發送: ${text}`);
+
+            // Add message to UI immediately
+            addMessageToUI(message);
+
+            input.value = '';
+            totalMessages++;
+            document.getElementById('totalMessages').textContent = totalMessages;
+        }
+
+        function addMessageToUI(message) {
+            const container = document.getElementById('chatMessages');
+            const msgId = `msg_${Date.now()}`;
+
+            const msgEl = document.createElement('div');
+            msgEl.className = 'message';
+            msgEl.dataset.messageId = msgId;
+
+            const time = new Date(typeof message.timestamp === 'number' ? message.timestamp : Date.now()).toLocaleTimeString();
+
+            msgEl.innerHTML = `
+                <div class="message-header">
+                    <span class="username">${escapeHtml(message.username)}</span>
+                    <span class="timestamp">${time}</span>
+                    <span class="moderation-badge">審核中...</span>
+                </div>
+                <div class="message-text">${escapeHtml(message.text)}</div>
+            `;
+
+            container.appendChild(msgEl);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendQuickMessage(text) {
+            document.getElementById('messageInput').value = text;
+            sendMessage();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Update channel display when tenant ID changes
+        document.getElementById('tenantId').addEventListener('input', (e) => {
+            document.getElementById('channelDisplay').textContent = `頻道: ${e.target.value || 'test-channel'}`;
+        });
+
+        // Initialize
+        log('Stream Guardian 聊天模擬器已啟動');
+        log('點擊「連線」按鈕開始');
+    </script>
+</body>
+</html>

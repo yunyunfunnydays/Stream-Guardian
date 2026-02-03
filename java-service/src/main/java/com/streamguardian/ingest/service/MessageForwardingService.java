@@ -20,9 +20,10 @@ public class MessageForwardingService {
     private final String pythonServiceUrl;
 
     public MessageForwardingService(
+            RestClient.Builder restClientBuilder,
             @Value("${python-service.url:http://python-service:8000}") String pythonServiceUrl) {
         this.pythonServiceUrl = pythonServiceUrl;
-        this.restClient = RestClient.builder()
+        this.restClient = restClientBuilder
                 .baseUrl(pythonServiceUrl)
                 .build();
         log.info("========== Message forwarding service initialized with Python URL: {}", pythonServiceUrl);

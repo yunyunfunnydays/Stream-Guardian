@@ -42,7 +42,7 @@ def get_llm():
         )
     elif settings.openai_api_key:
         return ChatOpenAI(
-            model="gpt-4o-mini",
+            model=settings.llm_model,
             api_key=settings.openai_api_key.get_secret_value(),
             temperature=0
         )
@@ -120,7 +120,10 @@ MODERATOR_SYSTEM_PROMPT = """你是直播聊天室管理 AI。根據違規審核
 - 中度違規 (harassment): 使用 timeout_user (duration: 300)
 - 輕度違規 (spam, inappropriate): 使用 reply_chat 發送警告
 
-必須根據情況選擇一個工具執行。"""
+重要規則：
+- 只執行一個工具，然後停止
+- 如果工具已經成功執行，不要再呼叫任何工具
+- 看到工具執行成功的結果後，直接回覆確認即可"""
 
 
 async def moderator_node(state: ModerationState, tools: list) -> dict:
@@ -137,7 +140,16 @@ async def moderator_node(state: ModerationState, tools: list) -> dict:
     # Native Tool Calling: bind_tools
     llm_with_tools = llm.bind_tools(tools)
 
-    user_content = f"""審核結果：
+    # 檢查是否已有 messages (表示是 ReAct loop 的後續呼叫)
+    existing_messages = state.get("messages", [])
+
+    if existing_messages:
+        # 後續呼叫：使用現有 messages (包含 tool 執行結果)
+        messages = existing_messages
+        logger.info("========== moderator_continuing", message_count=len(messages))
+    else:
+        # 首次呼叫：建立初始 messages
+        user_content = f"""審核結果：
 - 違規類型: {state.get('flag_reasons', [])}
 - 信心分數: {state.get('confidence', 0.0)}
 - 原始訊息: {state['text']}
@@ -145,11 +157,11 @@ async def moderator_node(state: ModerationState, tools: list) -> dict:
 - 使用者 ID: {state['user_id']}
 - 使用者名稱: {state.get('username', state['user_id'])}"""
 
-    messages = state.get("messages", [])
-    messages = [
-        SystemMessage(content=MODERATOR_SYSTEM_PROMPT),
-        HumanMessage(content=user_content)
-    ]
+        messages = [
+            SystemMessage(content=MODERATOR_SYSTEM_PROMPT),
+            HumanMessage(content=user_content)
+        ]
+        logger.info("========== moderator_first_call")
 
     response = await llm_with_tools.ainvoke(messages)
 

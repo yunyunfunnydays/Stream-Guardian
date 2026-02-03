@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: stream-guardian-java-service
+  jackson:
+    property-naming-strategy: SNAKE_CASE
 
 # Python service URL for forwarding messages
 python-service:

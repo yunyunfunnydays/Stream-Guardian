@@ -27,7 +27,8 @@ class Settings(BaseSettings):
     # AI Provider (SecretStr hides values in logs)
     anthropic_api_key: Optional[SecretStr] = None
     openai_api_key: Optional[SecretStr] = None
-    llm_model: str = "claude-3-haiku-20240307"
+    google_api_key: Optional[SecretStr] = None
+    llm_model: str = "gemini-3-flash-preview"
     enable_ai_analysis: bool = True
 
     model_config = SettingsConfigDict(

@@ -48,6 +48,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring DevTools (Hot Reload) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

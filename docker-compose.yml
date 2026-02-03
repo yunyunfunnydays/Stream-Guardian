@@ -22,6 +22,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    develop:
+      watch:
+        - action: rebuild
+          path: ./java-service/pom.xml
+        - action: rebuild
+          path: ./java-service/src
 
   # Python Service: MCP Client + LangGraph AI Brain
   python-service:
@@ -52,6 +58,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./python-service/app
+          target: /app/app
 
   # Qdrant: Vector Database
   qdrant:

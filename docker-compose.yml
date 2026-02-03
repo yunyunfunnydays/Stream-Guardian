@@ -10,6 +10,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - TZ=Asia/Taipei
       - SPRING_PROFILES_ACTIVE=docker
       - PYTHON_SERVICE_URL=http://python-service:8000
     depends_on:
@@ -38,6 +39,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - TZ=Asia/Taipei
       - JAVA_SERVICE_URL=http://java-service:8080
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
@@ -45,6 +47,11 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - LOG_LEVEL=INFO
+      # LangSmith Observability
+      - LANGSMITH_TRACING=true
+      - LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
+      - LANGSMITH_PROJECT=stream-guardian
     depends_on:
       java-service:
         condition: service_healthy

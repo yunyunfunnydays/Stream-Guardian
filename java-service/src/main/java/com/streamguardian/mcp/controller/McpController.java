@@ -17,11 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * MCP Server Controller implementing SSE transport.
+ * MCP Server Controller implementing SSE transport (MCP 2025 protocol).
  *
  * Endpoints:
- * - GET /mcp/sse: Establish SSE connection
- * - POST /mcp/messages: Handle JSON-RPC requests
+ * - GET /mcp/sse: Establish SSE connection (server → client)
+ * - POST /mcp/sse: Handle JSON-RPC requests (client → server)
  */
 @RestController
 @RequestMapping("/mcp")
@@ -46,10 +46,10 @@ public class McpController {
     }
 
     /**
-     * POST /mcp/messages - Handle JSON-RPC requests from MCP clients
+     * POST /mcp/sse - Handle JSON-RPC requests from MCP clients (MCP 2025 protocol)
      */
-    @PostMapping(value = "/messages", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonRpcResponse> handleMessage(
+    @PostMapping(value = "/sse", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonRpcResponse> handleSsePost(
             @RequestParam(required = false) String sessionId,
             @RequestBody JsonRpcRequest request) {
 

@@ -27,6 +27,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final MessageForwardingService forwardingService;
 
     private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
+    // Map tenant ID to session ID (one tenant can have one or more sessions)
+    private final Map<String, String> tenantToSession = new ConcurrentHashMap<>();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -48,6 +50,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 chatMessage.setTimestamp(System.currentTimeMillis());
             }
 
+            // Track which tenant this session belongs to
+            String sessionId = session.getId();
+            String tenantId = chatMessage.getTenantId();
+            tenantToSession.put(tenantId, sessionId);
+
             log.info("========== Chat message: tenant={}, user={}({}), text={}",
                     chatMessage.getTenantId(), chatMessage.getUsername(), chatMessage.getUserId(), chatMessage.getText());
 
@@ -64,6 +71,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         String sessionId = session.getId();
         activeSessions.remove(sessionId);
+
+        // Remove from tenant mapping
+        tenantToSession.entrySet().removeIf(entry -> entry.getValue().equals(sessionId));
+
         log.info("========== WebSocket disconnected: {} - {} (remaining: {})",
                 sessionId, status.getReason(), activeSessions.size());
     }
@@ -72,10 +83,38 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         log.error("========== WebSocket transport error for session {}: {}",
                 session.getId(), exception.getMessage());
-        activeSessions.remove(session.getId());
+        String sessionId = session.getId();
+        activeSessions.remove(sessionId);
+
+        // Remove from tenant mapping
+        tenantToSession.entrySet().removeIf(entry -> entry.getValue().equals(sessionId));
     }
 
     public int getActiveSessionCount() {
         return activeSessions.size();
+    }
+
+    /**
+     * Broadcast a message to the WebSocket client connected to a specific tenant/channel
+     */
+    public void broadcastToTenant(String tenantId, String message) {
+        String sessionId = tenantToSession.get(tenantId);
+        if (sessionId == null) {
+            log.debug("No active session found for tenant: {}", tenantId);
+            return;
+        }
+
+        WebSocketSession session = activeSessions.get(sessionId);
+        if (session == null || !session.isOpen()) {
+            log.debug("Session {} for tenant {} is not open", sessionId, tenantId);
+            return;
+        }
+
+        try {
+            session.sendMessage(new TextMessage(message));
+            log.debug("Broadcasted message to tenant {} (session: {})", tenantId, sessionId);
+        } catch (Exception e) {
+            log.error("========== Failed to broadcast to tenant {}: {}", tenantId, e.getMessage());
+        }
     }
 }

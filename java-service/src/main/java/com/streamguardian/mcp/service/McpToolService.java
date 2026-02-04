@@ -1,6 +1,7 @@
 package com.streamguardian.mcp.service;
 
 import com.streamguardian.mcp.dto.McpToolDefinition;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +15,10 @@ import java.util.Map;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class McpToolService {
+
+    private final ToolExecutionNotificationService notificationService;
 
     /**
      * Get all available MCP tools for Stream Guardian
@@ -164,6 +168,9 @@ public class McpToolService {
 
         log.info("========== REPLY_CHAT: tenant={}, message={}", tenantId, message);
         log.info("========== [SIMULATED] Twitch API: POST /chat/messages");
+
+        // Notify frontend with bot message (simulating Twitch API response)
+        notificationService.notifyBotMessage(tenantId, message);
 
         return Map.of(
                 "success", true,

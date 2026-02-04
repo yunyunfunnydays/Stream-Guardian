@@ -89,6 +89,48 @@
             border-left: 3px solid #22c55e;
         }
 
+        .message-action {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .message-action .action-icon {
+            margin-right: 6px;
+        }
+
+        .message-action.ban {
+            border-left: 3px solid #dc2626;
+            color: #fca5a5;
+        }
+
+        .message-action.timeout {
+            border-left: 3px solid #f59e0b;
+            color: #fcd34d;
+        }
+
+        .message-action.reply {
+            border-left: 3px solid #3b82f6;
+            color: #93c5fd;
+        }
+
+        .flag-reasons {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+
+        .flag-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
         .message-header {
             display: flex;
             align-items: center;
@@ -488,11 +530,43 @@
         function handleServerMessage(data) {
             // Handle moderation result from server
             if (data.type === 'moderation_result') {
-                updateMessageStatus(data.message_id, data.is_flagged, data.flag_reasons, data.confidence);
+                updateMessageStatus(
+                    data.message_id,
+                    data.is_flagged,
+                    data.flag_reasons,
+                    data.confidence,
+                    data.action_taken,
+                    data.action_result
+                );
+            }
+            // Handle bot reply messages
+            if (data.type === 'bot_message') {
+                addBotMessageToUI(data.message);
             }
         }
 
-        function updateMessageStatus(messageId, isFlagged, reasons, confidence) {
+        function addBotMessageToUI(text) {
+            const container = document.getElementById('chatMessages');
+            const msgEl = document.createElement('div');
+            msgEl.className = 'message';
+            msgEl.style.background = 'rgba(59, 130, 246, 0.2)';
+            msgEl.style.borderLeft = '3px solid #3b82f6';
+
+            const time = new Date().toLocaleTimeString();
+
+            msgEl.innerHTML = `
+                <div class="message-header">
+                    <span class="username" style="color: #60a5fa;">🤖 Stream Guardian</span>
+                    <span class="timestamp">${time}</span>
+                </div>
+                <div class="message-text">${escapeHtml(text)}</div>
+            `;
+
+            container.appendChild(msgEl);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateMessageStatus(messageId, isFlagged, reasons, confidence, actionTaken, actionResult) {
             const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
             if (msgEl) {
                 msgEl.classList.remove('flagged', 'safe');
@@ -506,10 +580,51 @@
                         : '安全';
                 }
 
+                // 顯示違規原因標籤
+                if (isFlagged && reasons && reasons.length > 0) {
+                    let flagsHtml = '<div class="flag-reasons">';
+                    reasons.forEach(reason => {
+                        flagsHtml += `<span class="flag-tag">${escapeHtml(reason)}</span>`;
+                    });
+                    flagsHtml += '</div>';
+                    msgEl.querySelector('.message-text').insertAdjacentHTML('afterend', flagsHtml);
+                }
+
+                // 顯示處置動作
+                if (actionTaken) {
+                    const actionIcons = {
+                        'ban_user': '🚫',
+                        'timeout_user': '⏱️',
+                        'reply_chat': '💬'
+                    };
+                    const actionNames = {
+                        'ban_user': '永久封禁',
+                        'timeout_user': '暫時禁言',
+                        'reply_chat': '發送警告'
+                    };
+                    const actionClasses = {
+                        'ban_user': 'ban',
+                        'timeout_user': 'timeout',
+                        'reply_chat': 'reply'
+                    };
+
+                    const actionHtml = `
+                        <div class="message-action ${actionClasses[actionTaken] || ''}">
+                            <span class="action-icon">${actionIcons[actionTaken] || '⚡'}</span>
+                            <strong>${actionNames[actionTaken] || actionTaken}</strong>
+                            ${actionResult ? ` - ${escapeHtml(actionResult)}` : ''}
+                        </div>
+                    `;
+                    msgEl.insertAdjacentHTML('beforeend', actionHtml);
+                }
+
                 if (isFlagged) {
                     flaggedMessages++;
                     document.getElementById('flaggedMessages').textContent = flaggedMessages;
                     log(`訊息違規: ${reasons.join(', ')} (${Math.round(confidence * 100)}%)`, 'warn');
+                    if (actionTaken) {
+                        log(`執行動作: ${actionTaken}`, 'info');
+                    }
                 }
             }
         }

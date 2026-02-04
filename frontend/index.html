@@ -312,31 +312,6 @@
             color: #86efac;
         }
 
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #60a5fa;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 4px;
-        }
-
         .log-area {
             flex: 1;
             min-height: 150px;
@@ -442,8 +417,6 @@
 
     <script>
         let ws = null;
-        let totalMessages = 0;
-        let flaggedMessages = 0;
 
         function log(message, type = 'info') {
             const logArea = document.getElementById('logArea');
@@ -605,8 +578,6 @@
                 }
 
                 if (isFlagged) {
-                    flaggedMessages++;
-                    document.getElementById('flaggedMessages').textContent = flaggedMessages;
                     log(`訊息違規: ${reasons.join(', ')} (${Math.round(confidence * 100)}%)`, 'warn');
                     if (actionTaken) {
                         log(`執行動作: ${actionTaken}`, 'info');
@@ -640,8 +611,6 @@
             addMessageToUI(message);
 
             input.value = '';
-            totalMessages++;
-            document.getElementById('totalMessages').textContent = totalMessages;
         }
 
         function addMessageToUI(message) {

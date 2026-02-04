@@ -40,7 +40,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
-        log.debug("Received WebSocket message: {}", payload);
+        log.debug("========== Received WebSocket message: {}", payload);
 
         try {
             ChatMessage chatMessage = objectMapper.readValue(payload, ChatMessage.class);
@@ -54,9 +54,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             String sessionId = session.getId();
             String tenantId = chatMessage.getTenantId();
             tenantToSession.put(tenantId, sessionId);
-
-            log.info("========== Chat message: tenant={}, user={}({}), text={}",
-                    chatMessage.getTenantId(), chatMessage.getUsername(), chatMessage.getUserId(), chatMessage.getText());
 
             // Forward to Python service for analysis
             forwardingService.forwardToPythonService(chatMessage);
@@ -100,19 +97,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void broadcastToTenant(String tenantId, String message) {
         String sessionId = tenantToSession.get(tenantId);
         if (sessionId == null) {
-            log.debug("No active session found for tenant: {}", tenantId);
+            log.debug("========== No active session found for tenant: {}", tenantId);
             return;
         }
 
         WebSocketSession session = activeSessions.get(sessionId);
         if (session == null || !session.isOpen()) {
-            log.debug("Session {} for tenant {} is not open", sessionId, tenantId);
+            log.debug("========== Session {} for tenant {} is not open", sessionId, tenantId);
             return;
         }
 
         try {
             session.sendMessage(new TextMessage(message));
-            log.debug("Broadcasted message to tenant {} (session: {})", tenantId, sessionId);
+            log.debug("========== Broadcasted message to tenant {} (session: {})", tenantId, sessionId);
         } catch (Exception e) {
             log.error("========== Failed to broadcast to tenant {}: {}", tenantId, e.getMessage());
         }

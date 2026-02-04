@@ -39,7 +39,7 @@ async def build_moderation_graph():
         logger.error("========== mcp_connection_failed", error=str(e))
         tools = []
 
-    # 2. 建構 StateGraph
+    # 2. 建構 StateGraph 加入狀態定義
     graph = StateGraph(ModerationState)
 
     # 3. 加入節點
@@ -74,9 +74,11 @@ _mcp_client = None
 
 async def get_moderation_graph():
     """Get or create the compiled moderation graph."""
+    
     global _compiled_graph, _mcp_client
     if _compiled_graph is None:
         _compiled_graph, _mcp_client = await build_moderation_graph()
+    logger.debug("========== get moderation_graph")
     return _compiled_graph
 
 

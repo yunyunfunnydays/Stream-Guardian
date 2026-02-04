@@ -3,6 +3,7 @@ package com.streamguardian.ingest.service;
 import com.streamguardian.ingest.dto.ChatMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -35,7 +36,7 @@ public class MessageForwardingService {
     public void forwardToPythonService(ChatMessage message) {
         String analyzeUrl = "/api/analyze";
 
-        log.info("========== Forwarding message to Python service: {}{}", pythonServiceUrl, analyzeUrl);
+        log.debug("========== Forwarding message to Python service: {}{}", pythonServiceUrl, analyzeUrl);
 
         try {
             Map<String, Object> response = restClient.post()
@@ -43,12 +44,12 @@ public class MessageForwardingService {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(message)
                     .retrieve()
-                    .body(Map.class);
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
-            log.info("========== Python service response: {}", response);
+            log.debug("========== Python service rest api response: {}", response);
 
         } catch (Exception e) {
-            log.error("========== Failed to forward message to Python service: {}", e.getMessage());
+            log.error("========== Failed to forward message to Python service: {}", e.getMessage(), message);
             // In production, you might want to implement retry logic or queue the message
         }
     }

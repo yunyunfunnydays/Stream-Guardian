@@ -53,7 +53,7 @@ public class McpController {
             @RequestParam(required = false) String sessionId,
             @RequestBody JsonRpcRequest request) {
 
-        log.info("========== MCP Request - Method: {}, ID: {}", request.getMethod(), request.getId());
+        log.debug("========== get post(/sse) MCP Request - Method: {}, ID: {}", request.getMethod(), request.getId());
 
         JsonRpcResponse response = processRequest(request);
 
@@ -137,7 +137,7 @@ public class McpController {
         String toolName = (String) params.get("name");
         Map<String, Object> arguments = (Map<String, Object>) params.getOrDefault("arguments", Map.of());
 
-        log.info("========== MCP Tool call: {} with arguments: {}", toolName, arguments);
+        log.debug("========== MCP Tool call: {} with arguments: {}", toolName, arguments);
 
         try {
             Map<String, Object> toolResult = toolService.executeTool(toolName, arguments);

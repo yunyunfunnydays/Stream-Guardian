@@ -56,7 +56,7 @@ async def analyze_message(message: ChatMessage):
     由 Java Ingest Service 透過 HTTP POST 呼叫。
     """
     logger.info(
-        "========== analyze_request",
+        "========== api/analyze called",
         tenant_id=message.tenant_id,
         user_id=message.user_id,
         text=message.text[:50] + "..." if len(message.text) > 50 else message.text

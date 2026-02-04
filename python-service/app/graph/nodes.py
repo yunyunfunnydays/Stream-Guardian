@@ -67,7 +67,7 @@ async def screener_node(state: ModerationState) -> dict:
     llm = get_llm()
 
     if llm is None:
-        logger.info("========== screener_skipped", reason="no_llm_configured")
+        logger.warning("========== screener_skipped", reason="no_llm_configured")
         return {"is_flagged": False, "flag_reasons": [], "confidence": 0.0}
 
     # 使用 with_structured_output (2024/2025 主流)
@@ -81,7 +81,7 @@ async def screener_node(state: ModerationState) -> dict:
             HumanMessage(content=user_content)
         ])
 
-        logger.info(
+        logger.debug(
             "========== screener_result",
             tenant_id=state["tenant_id"],
             user_id=state["user_id"],
@@ -107,7 +107,10 @@ async def screener_node(state: ModerationState) -> dict:
 def should_moderate(state: ModerationState) -> Literal["moderator", "end"]:
     """決定是否需要進入審核流程"""
     if state.get("is_flagged") and state.get("confidence", 0) > 0.5:
+        logger.debug("========== should_moderate routing_to_moderator")
         return "moderator"
+    else:
+        logger.debug("========== should_moderate routing_to_end")
     return "end"
 
 
@@ -134,7 +137,7 @@ async def moderator_node(state: ModerationState, tools: list) -> dict:
     llm = get_llm()
 
     if llm is None:
-        logger.info("========== moderator_skipped", reason="no_llm_configured")
+        logger.warning("========== moderator_skipped", reason="no_llm_configured")
         return {}
 
     # Native Tool Calling: bind_tools
@@ -146,26 +149,26 @@ async def moderator_node(state: ModerationState, tools: list) -> dict:
     if existing_messages:
         # 後續呼叫：使用現有 messages (包含 tool 執行結果)
         messages = existing_messages
-        logger.info("========== moderator_continuing", message_count=len(messages))
+        logger.debug("========== moderator_continuing_call", message_count=len(messages))
     else:
         # 首次呼叫：建立初始 messages
         user_content = f"""審核結果：
-- 違規類型: {state.get('flag_reasons', [])}
-- 信心分數: {state.get('confidence', 0.0)}
-- 原始訊息: {state['text']}
-- 頻道 ID: {state['tenant_id']}
-- 使用者 ID: {state['user_id']}
-- 使用者名稱: {state.get('username', state['user_id'])}"""
+            - 違規類型: {state.get('flag_reasons', [])}
+            - 信心分數: {state.get('confidence', 0.0)}
+            - 原始訊息: {state['text']}
+            - 頻道 ID: {state['tenant_id']}
+            - 使用者 ID: {state['user_id']}
+            - 使用者名稱: {state.get('username', state['user_id'])}"""
 
         messages = [
             SystemMessage(content=MODERATOR_SYSTEM_PROMPT),
             HumanMessage(content=user_content)
         ]
-        logger.info("========== moderator_first_call")
+        logger.debug("========== moderator_first_call")
 
     response = await llm_with_tools.ainvoke(messages)
 
-    logger.info(
+    logger.debug(
         "========== moderator_response",
         tool_calls=response.tool_calls if hasattr(response, 'tool_calls') else None
     )

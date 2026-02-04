@@ -19,11 +19,11 @@ async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown with MCP session management."""
     logger.info("========== starting_up", app=settings.app_name, version=settings.app_version)
 
-    # 建立 MCP Client
+    # 建立 MCP Client (使用 http transport 避免 SSE timeout 問題)
     mcp_client = MultiServerMCPClient({
         "stream-guardian": {
             "url": f"{settings.java_service_url}mcp/sse",
-            "transport": "sse",
+            "transport": "http",
         }
     })
 

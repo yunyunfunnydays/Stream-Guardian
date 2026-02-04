@@ -1,18 +1,18 @@
 """LangGraph pipeline builder with MCP integration (2025 Native Tool Calling)."""
 from functools import partial
+from typing import Optional, List
 import structlog
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
-from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_core.tools import BaseTool
 
 from app.graph.state import ModerationState
 from app.graph.nodes import screener_node, should_moderate, moderator_node, get_llm
-from app.config import get_settings
 
 logger = structlog.get_logger()
 
 
-async def build_moderation_graph():
+async def build_moderation_graph(tools: List[BaseTool]):
     """
     建構聊天審核 LangGraph Pipeline (with MCP tools)。
 
@@ -22,22 +22,8 @@ async def build_moderation_graph():
                               +-> END                        +---------+
                                                          (tools_condition loop)
     """
-    settings = get_settings()
-
-    # 1. 連接 MCP Server，動態取得工具
-    mcp_client = MultiServerMCPClient({
-        "stream-guardian": {
-            "url": f"{settings.java_service_url}mcp/sse",
-            "transport": "sse",
-        }
-    })
-
-    try:
-        tools = await mcp_client.get_tools()
-        logger.info("========== mcp_tools_loaded", tools=[t.name for t in tools])
-    except Exception as e:
-        logger.error("========== mcp_connection_failed", error=str(e))
-        tools = []
+    # 1. 使用從 MCP session 載入的工具
+    logger.info("========== building_graph_with_tools", tool_names=[t.name for t in tools])
 
     # 2. 建構 StateGraph 加入狀態定義
     graph = StateGraph(ModerationState)
@@ -63,27 +49,28 @@ async def build_moderation_graph():
     # Tools 執行後回到 moderator (ReAct loop)
     graph.add_edge("tools", "moderator")
 
-    return graph.compile(), mcp_client
+    return graph.compile()
 
 
 # --- Graph Singleton ---
 
 _compiled_graph = None
-_mcp_client = None
 
 
-async def get_moderation_graph():
+async def get_moderation_graph(tools: Optional[List[BaseTool]] = None):
     """Get or create the compiled moderation graph."""
-    
-    global _compiled_graph, _mcp_client
+
+    global _compiled_graph
     if _compiled_graph is None:
-        _compiled_graph, _mcp_client = await build_moderation_graph()
-    logger.debug("========== get moderation_graph")
+        if tools is None:
+            raise RuntimeError("Tools required for first graph initialization")
+        _compiled_graph = await build_moderation_graph(tools)
+        logger.info("========== graph_initialized")
+    logger.debug("========== get_moderation_graph")
     return _compiled_graph
 
 
 async def cleanup():
-    """Cleanup MCP client connection."""
-    global _mcp_client
-    if _mcp_client:
-        _mcp_client = None
+    """Cleanup graph cache."""
+    global _compiled_graph
+    _compiled_graph = None

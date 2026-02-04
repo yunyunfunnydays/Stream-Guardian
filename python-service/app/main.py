@@ -3,10 +3,12 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import ORJSONResponse
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_mcp_adapters.tools import load_mcp_tools
 
 from app.config import get_settings
 from app.models import ChatMessage, AnalysisResult
-from app.graph import get_moderation_graph, cleanup
+from app.graph import get_moderation_graph
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -14,21 +16,34 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: startup and shutdown."""
+    """Application lifespan: startup and shutdown with MCP session management."""
     logger.info("========== starting_up", app=settings.app_name, version=settings.app_version)
 
-    # Pre-warm: 建立 MCP 連線與 Graph
-    try:
-        await get_moderation_graph()
-        logger.info("========== graph_initialized")
-    except Exception as e:
-        logger.warning("========== graph_init_failed", error=str(e))
+    # 建立 MCP Client
+    mcp_client = MultiServerMCPClient({
+        "stream-guardian": {
+            "url": f"{settings.java_service_url}mcp/sse",
+            "transport": "sse",
+        }
+    })
 
-    yield
+    # ✅ 使用 async with 管理 session 生命週期
+    async with mcp_client.session("stream-guardian") as session:
+        logger.info("========== mcp_session_started")
 
-    # Shutdown: 清理資源
-    logger.info("========== shutting_down")
-    await cleanup()
+        # 從 session 載入 tools
+        tools = await load_mcp_tools(session)
+        logger.info("========== mcp_tools_loaded", tool_count=len(tools))
+
+        # 使用 tools 構建 graph
+        await get_moderation_graph(tools)
+        logger.info("========== startup_complete")
+
+        # ✅ yield 在 async with block 內，讓 session 保持開啟
+        yield
+
+    # Session 自動關閉
+    logger.info("========== mcp_session_closed")
 
 
 app = FastAPI(
@@ -97,3 +112,4 @@ async def analyze_message(message: ChatMessage):
     except Exception as e:
         logger.error("========== analyze_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
+ 

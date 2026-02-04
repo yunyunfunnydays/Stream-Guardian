@@ -116,14 +116,28 @@ def should_moderate(state: ModerationState) -> Literal["moderator", "end"]:
     return "end"
 
 
+def should_continue_after_tool(state: ModerationState) -> Literal["end"]:
+    """
+    Tool 執行後決定是否繼續。
+    目前策略：執行一次 tool 後就強制結束，不允許循環。
+    """
+    messages = state.get("messages", [])
+    logger.debug(
+        "========== should_continue_after_tool",
+        message_count=len(messages),
+        decision="end"
+    )
+    # 強制結束，確保只執行一次 tool
+    return "end"
+
+
 # --- Moderator Node (Native Tool Calling) ---
 
 MODERATOR_SYSTEM_PROMPT = """你是直播聊天室管理 AI。根據違規審核結果，使用適當的工具執行管理動作。
 
 決策原則：
-- 嚴重違規 (hate_speech, 威脅): 使用 ban_user
-- 中度違規 (harassment): 使用 timeout_user (duration: 300)
-- 輕度違規 (spam, inappropriate): 使用 reply_chat 發送警告
+- 嚴重違規 (hate_speech, harassment): 使用 ban_user
+- 輕度違規 (spam, inappropriate): 使用 timeout_user (duration: 300)
 
 重要規則：
 - 只執行一個工具，然後停止
@@ -152,6 +166,8 @@ async def moderator_node(state: ModerationState, tools: list) -> dict:
         # 後續呼叫：使用現有 messages (包含 tool 執行結果)
         messages = existing_messages
         logger.debug("========== moderator_continuing_call", message_count=len(messages))
+        logger.debug("========== moderator_existing_messages", messages=[str(m) for m in messages])
+        logger.debug("========== moderator_state", state=state)
     else:
         # 首次呼叫：建立初始 messages
         user_content = f"""審核結果：

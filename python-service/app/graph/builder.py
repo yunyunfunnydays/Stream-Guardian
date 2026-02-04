@@ -7,7 +7,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.tools import BaseTool
 
 from app.graph.state import ModerationState
-from app.graph.nodes import screener_node, should_moderate, moderator_node, get_llm
+from app.graph.nodes import screener_node, should_moderate, moderator_node, should_continue_after_tool, get_llm
 
 logger = structlog.get_logger()
 
@@ -17,10 +17,10 @@ async def build_moderation_graph(tools: List[BaseTool]):
     建構聊天審核 LangGraph Pipeline (with MCP tools)。
 
     流程:
-    START -> screener -> [should_moderate] -> moderator -> tools -> moderator -> END
-                              |                              ^         |
-                              +-> END                        +---------+
-                                                         (tools_condition loop)
+    START -> screener -> [should_moderate] -> moderator -> [tools_condition] -> tools -> [should_continue] -> END
+                              |                                |                              |
+                              +-> END                          +-> END                        +-> END
+                                                                                    (強制結束，只執行一次 tool)
     """
     # 1. 使用從 MCP session 載入的工具
     logger.info("========== building_graph_with_tools", tool_names=[t.name for t in tools])
@@ -46,8 +46,12 @@ async def build_moderation_graph(tools: List[BaseTool]):
     # Moderator 後使用 tools_condition (Native Tool Calling pattern)
     graph.add_conditional_edges("moderator", tools_condition)
 
-    # Tools 執行後回到 moderator (ReAct loop)
-    graph.add_edge("tools", "moderator")
+    # Tools 執行後透過決策節點判斷是否繼續（目前強制結束）
+    graph.add_conditional_edges(
+        "tools",
+        should_continue_after_tool,
+        {"end": END}
+    )
 
     return graph.compile()
 

@@ -1,5 +1,6 @@
 """LangGraph nodes for chat moderation pipeline (2025 Native Tool Calling)."""
 from typing import Literal
+from functools import lru_cache
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_anthropic import ChatAnthropic
@@ -24,8 +25,9 @@ class ScreenerOutput(BaseModel):
 
 # --- LLM Factory ---
 
+@lru_cache()
 def get_llm():
-    """根據設定取得 LLM 實例 (優先順序: Google > Anthropic > OpenAI)"""
+    """根據設定取得 LLM 實例（緩存單例）(優先順序: Google > Anthropic > OpenAI)"""
     settings = get_settings()
 
     if settings.google_api_key:

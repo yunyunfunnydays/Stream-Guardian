@@ -48,7 +48,7 @@ public class McpToolService {
 
         return McpToolDefinition.builder()
                 .name("ban_user")
-                .description("Permanently ban a user from the chat. Use this for severe violations like harassment, hate speech, or spam bots.")
+                .description("Permanently ban a user from the chat and notify them. Use this for severe violations like harassment, hate speech, or spam bots.")
                 .inputSchema(McpToolDefinition.InputSchema.builder()
                         .type("object")
                         .properties(properties)
@@ -74,7 +74,7 @@ public class McpToolService {
 
         return McpToolDefinition.builder()
                 .name("timeout_user")
-                .description("Temporarily timeout a user from the chat. Use this for minor violations or warnings.")
+                .description("Temporarily timeout a user from the chat and notify them. Use this for minor violations or warnings.")
                 .inputSchema(McpToolDefinition.InputSchema.builder()
                         .type("object")
                         .properties(properties)
@@ -96,7 +96,7 @@ public class McpToolService {
 
         return McpToolDefinition.builder()
                 .name("reply_chat")
-                .description("Send a message to the chat as the bot. Use this to warn users, provide information, or engage with the community.")
+                .description("Send a message to the chat as the bot. Use this to provide information, or engage with the community.")
                 .inputSchema(McpToolDefinition.InputSchema.builder()
                         .type("object")
                         .properties(properties)
@@ -130,9 +130,10 @@ public class McpToolService {
         String userId = (String) args.get("user_id");
         String reason = (String) args.get("reason");
 
-        log.info("========== BAN_USER: tenant={}, user={}, reason={}", tenantId, userId, reason);
-        log.info("========== [SIMULATED] Twitch API: POST /moderation/bans");
-
+        log.debug("========== BAN_USER: tenant={}, user={}, reason={}", tenantId, userId, reason);             // Notify frontend with bot message (simulating Twitch API response)
+        notificationService.notifyBotMessage(tenantId,String.format("系統訊息：ID %s已被封鎖。", userId));
+           
+        
         return Map.of(
                 "success", true,
                 "action", "ban_user",
@@ -149,9 +150,11 @@ public class McpToolService {
         Object durationObj = args.get("duration");
         int duration = durationObj instanceof Number ? ((Number) durationObj).intValue() : 60;
 
-        log.info("========== TIMEOUT_USER: tenant={}, user={}, duration={}s", tenantId, userId, duration);
-        log.info("========== [SIMULATED] Twitch API: POST /moderation/bans (with duration)");
-
+        log.debug("========== TIMEOUT_USER: tenant={}, user={}, duration={}s", tenantId, userId, duration);
+                // Notify frontend with bot message (simulating Twitch API response)
+        notificationService.notifyBotMessage(tenantId,String.format("系統訊息：ID %s已被禁言%d秒。", userId, duration));
+              
+       
         return Map.of(
                 "success", true,
                 "action", "timeout_user",
@@ -166,11 +169,10 @@ public class McpToolService {
         String tenantId = (String) args.get("tenant_id");
         String message = (String) args.get("message");
 
-        log.info("========== REPLY_CHAT: tenant={}, message={}", tenantId, message);
-        log.info("========== [SIMULATED] Twitch API: POST /chat/messages");
-
+        log.debug("========== REPLY_CHAT: tenant={}, message={}", tenantId, message);
+       
         // Notify frontend with bot message (simulating Twitch API response)
-        notificationService.notifyBotMessage(tenantId, message);
+        notificationService.notifyBotMessage(tenantId, String.format("系統訊息：%s", message));
 
         return Map.of(
                 "success", true,

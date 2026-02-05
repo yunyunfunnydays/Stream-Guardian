@@ -2,7 +2,7 @@ package com.streamguardian.ingest.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamguardian.ingest.dto.ChatMessage;
-import com.streamguardian.ingest.service.MessageForwardingService;
+import com.streamguardian.messaging.MessageProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -24,7 +24,7 @@ import java.util.Map;
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final ObjectMapper objectMapper;
-    private final MessageForwardingService forwardingService;
+    private final MessageProducer messageProducer;
 
     private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
     // Map tenant ID to session ID (one tenant can have one or more sessions)
@@ -55,8 +55,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             String tenantId = chatMessage.getTenantId();
             tenantToSession.put(tenantId, sessionId);
 
-            // Forward to Python service for analysis
-            forwardingService.forwardToPythonService(chatMessage);
+            // Send to messaging system for Python service analysis
+            messageProducer.send(chatMessage);
 
         } catch (Exception e) {
             log.error("========== Failed to process chat message: {}", e.getMessage(), e);

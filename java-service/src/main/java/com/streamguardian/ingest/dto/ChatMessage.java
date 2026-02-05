@@ -15,6 +15,9 @@ import lombok.Builder;
 @Builder
 public class ChatMessage {
 
+    @JsonProperty("message_id")
+    private String messageId;
+
     @JsonProperty("tenant_id")
     private String tenantId;
 

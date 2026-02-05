@@ -16,7 +16,16 @@ async def process_message(message_data: dict, graph) -> dict:
         "timestamp": message_data.get("timestamp"),
         "messages": [],
     })
-    return result
+
+    # 只提取可 JSON 序列化的欄位，排除 LangChain 的 AIMessage 物件
+    return {
+        "is_flagged": result.get("is_flagged", False),
+        "flag_reasons": result.get("flag_reasons", []),
+        "confidence": result.get("confidence", 0.0),
+        "action_taken": result.get("action_taken"),
+        "action_result": result.get("action_result"),
+        "model_name": result.get("model_name"),
+    }
 
 
 async def run_consumer(

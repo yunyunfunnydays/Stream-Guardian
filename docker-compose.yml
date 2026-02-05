@@ -24,6 +24,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       # KRaft Required
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms256M"
     networks:
       - stream-guardian-network
     healthcheck:

@@ -51,7 +51,7 @@ services:
       - LANGSMITH_TRACING=true
       - LANGSMITH_ENDPOINT=https://api.smith.langchain.com
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
-      - LANGSMITH_PROJECT=stream-guardian
+      - LANGSMITH_PROJECT=Stream-Guardian
     depends_on:
       java-service:
         condition: service_healthy

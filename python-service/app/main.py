@@ -1,4 +1,6 @@
 """FastAPI entry point for Stream Guardian Python service."""
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv(), verbose=True)
 from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, HTTPException

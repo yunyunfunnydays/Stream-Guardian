@@ -33,3 +33,6 @@ tenacity>=9.0.0
 
 # Type hints
 typing-extensions>=4.12.0
+
+# LangSmith SDK
+langsmith>=0.1.10

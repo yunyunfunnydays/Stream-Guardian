@@ -1,6 +1,7 @@
 """FastAPI entry point for Stream Guardian Python service."""
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv(), verbose=True)
+import asyncio
 from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, HTTPException
@@ -11,6 +12,8 @@ from langchain_mcp_adapters.tools import load_mcp_tools
 from app.config import get_settings
 from app.models import ChatMessage, AnalysisResult
 from app.graph import get_moderation_graph
+from app.messaging.kafka import KafkaMessageConsumer, KafkaResultProducer
+from app.messaging.handler import run_consumer
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -38,11 +41,40 @@ async def lifespan(app: FastAPI):
         logger.info("========== mcp_tools_loaded", tool_count=len(tools))
 
         # 使用 tools 構建 graph
-        await get_moderation_graph(tools)
+        graph = await get_moderation_graph(tools)
+        logger.info("========== graph_initialized")
+
+        # 啟動 Kafka Producer 和 Consumer
+        producer = KafkaResultProducer(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            topic=settings.kafka_results_topic,
+        )
+        await producer.start()
+
+        consumer = KafkaMessageConsumer(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            topic=settings.kafka_inbound_topic,
+            group_id=settings.kafka_consumer_group,
+        )
+        await consumer.start()
+
+        # 在背景執行 consumer
+        consumer_task = asyncio.create_task(
+            run_consumer(consumer, producer, graph)
+        )
         logger.info("========== startup_complete")
 
         # ✅ yield 在 async with block 內，讓 session 保持開啟
         yield
+
+        # 關閉 Kafka
+        consumer_task.cancel()
+        try:
+            await consumer_task
+        except asyncio.CancelledError:
+            pass
+        await consumer.stop()
+        await producer.stop()
 
     # Session 自動關閉
     logger.info("========== mcp_session_closed")

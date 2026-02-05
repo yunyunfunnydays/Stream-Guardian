@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
 
+    # Kafka Messaging
+    kafka_bootstrap_servers: str = "localhost:9094"
+    kafka_inbound_topic: str = "chat.messages.inbound"
+    kafka_results_topic: str = "chat.analysis.results"
+    kafka_consumer_group: str = "stream-guardian-python"
+
     # AI Provider (SecretStr hides values in logs)
     anthropic_api_key: Optional[SecretStr] = None
     openai_api_key: Optional[SecretStr] = None

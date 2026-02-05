@@ -22,7 +22,7 @@ public class MessageForwardingService {
 
     public MessageForwardingService(
             RestClient.Builder restClientBuilder,
-            @Value("${python-service.url:http://python-service:8000}") String pythonServiceUrl) {
+            @Value("${python-service.url:http://localhost:8000}") String pythonServiceUrl) {
         this.pythonServiceUrl = pythonServiceUrl;
         this.restClient = restClientBuilder
                 .baseUrl(pythonServiceUrl)

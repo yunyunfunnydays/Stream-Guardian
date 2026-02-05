@@ -16,12 +16,12 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # Java MCP Server Connection
-    java_service_url: HttpUrl = "http://java-service:8080"
+    java_service_url: HttpUrl = "http://localhost:8080"
     mcp_sse_endpoint: str = "/mcp/sse"
     mcp_messages_endpoint: str = "/mcp/messages"
 
     # Qdrant Vector DB
-    qdrant_host: str = "qdrant"
+    qdrant_host: str = "localhost"
     qdrant_port: int = 6333
 
     # AI Provider (SecretStr hides values in logs)

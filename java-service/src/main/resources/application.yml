@@ -4,8 +4,29 @@ server:
 spring:
   application:
     name: stream-guardian-java-service
+  threads:
+    virtual:
+      enabled: true
   jackson:
     property-naming-strategy: SNAKE_CASE
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: stream-guardian-java
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+      auto-offset-reset: earliest
+
+# Kafka Topics
+kafka:
+  topics:
+    inbound: chat.messages.inbound
+    results: chat.analysis.results
 
 # Python service URL for forwarding messages
 python-service:

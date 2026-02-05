@@ -1,7 +1,58 @@
 version: "3.9"
 
 services:
-  # Java Service: MCP Server (SSE) + WebSocket Ingest
+  # Kafka: KRaft Mode (No Zookeeper) - 2026 Modern Architecture
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: stream-guardian-kafka
+    ports:
+      - "9092:9092"   # Internal (Docker Network)
+      - "9094:9094"   # External (Host Machine / IDE)
+    environment:
+      # KRaft Mode Configuration
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      # Listeners: Internal + Controller + External
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      # Topic Settings
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=1
+      # KRaft Required
+      - KAFKA_KRAFT_CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - stream-guardian-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Kafka UI: Web Dashboard for Kafka Management
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: stream-guardian-kafka-ui
+    ports:
+      - "9080:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=stream-guardian
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    networks:
+      - stream-guardian-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # Java Service: MCP Server (SSE) + WebSocket Ingest + Kafka Producer
   java-service:
     build:
       context: ./java-service
@@ -13,8 +64,12 @@ services:
       - TZ=Asia/Taipei
       - SPRING_PROFILES_ACTIVE=docker
       - PYTHON_SERVICE_URL=http://python-service:8000
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     depends_on:
-      - qdrant
+      kafka:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
     networks:
       - stream-guardian-network
     healthcheck:
@@ -52,8 +107,12 @@ services:
       - LANGSMITH_ENDPOINT=https://api.smith.langchain.com
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
       - LANGSMITH_PROJECT=Stream-Guardian
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
     depends_on:
       java-service:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       qdrant:
         condition: service_healthy
@@ -94,4 +153,5 @@ networks:
     driver: bridge
 
 volumes:
+  kafka_data:
   qdrant_data:

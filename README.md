@@ -27,8 +27,8 @@ WebSocket Client
 │  - MCP Server (Tools: ban/timeout/reply) │
 └───────┬──────────────────────────┬───────┘
         │                          │
-        │ HTTP POST                │ MCP SSE
-        │ /api/analyze             │ (Tool Calls)
+        │ Kafka                    │ MCP SSE
+        │                          │ (Tool Calls)
         ↓                          ↓
 ┌──────────────────────────────────────────┐
 │        Python Service (:8000)            │
@@ -545,15 +545,6 @@ wscat -c ws://localhost:8080/ws/chat
 # 發送訊息
 {"tenant_id":"test","user_id":"u1","username":"user1","text":"Hello"}
 ```
-
-## 📊 效能指標
-
-| 指標 | 數值 |
-|------|------|
-| **平均響應時間** | < 2s (含 LLM 呼叫) |
-| **WebSocket 連接** | 1000+ 並發 |
-| **吞吐量** | ~50 msg/s (單實例) |
-| **記憶體使用** | Java: ~512MB, Python: ~256MB |
 
 ## 🔒 安全考量
 
